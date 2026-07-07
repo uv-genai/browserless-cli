@@ -16,7 +16,8 @@ import json
 import mimetypes
 import os
 import sys
-from urllib.parse import urlencode
+from html.parser import HTMLParser
+from urllib.parse import urljoin, urlencode
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
@@ -48,6 +49,7 @@ Commands:
   performance   Run Lighthouse audit (SEO, accessibility, speed)
   crawl         Crawl an entire site and scrape every page
   markdown      Render a page and save as Markdown
+  links         Extract all links from a page as JSON
 """
 
 # ---------------------------------------------------------------------------
@@ -159,6 +161,41 @@ def cmd_smart_scrape(args):
     print(f"\nSaved smart-scrape ({len(body)} bytes) to {out}", file=sys.stderr)
 
 
+def _extract_links(html: str, base_url: str) -> list[dict]:
+    """Extract all <a> links from HTML, returning list of {text, url} dicts."""
+    class LinkExtractor(HTMLParser):
+        def __init__(self, base_url: str):
+            super().__init__()
+            self.base_url = base_url
+            self.links: list[dict] = []
+            self._current_href: str | None = None
+            self._text_parts: list[str] = []
+
+        def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+            if tag == "a":
+                attrs_dict = dict(attrs)
+                href = attrs_dict.get("href", "")
+                if href:
+                    self._current_href = href
+                    self._text_parts = []
+
+        def handle_endtag(self, tag: str) -> None:
+            if tag == "a" and self._current_href is not None:
+                text = "".join(self._text_parts).strip()
+                url = urljoin(self.base_url, self._current_href)
+                self.links.append({"text": text, "url": url})
+                self._current_href = None
+                self._text_parts = []
+
+        def handle_data(self, data: str) -> None:
+            if self._current_href is not None:
+                self._text_parts.append(data)
+
+    extractor = LinkExtractor(base_url)
+    extractor.feed(html)
+    return extractor.links
+
+
 def _html_to_markdown(html: str) -> str:
     """Basic HTML to Markdown conversion."""
     import re
@@ -196,6 +233,28 @@ def _html_to_markdown(html: str) -> str:
     md = re.sub(r'\n{3,}', '\n\n', md)
     md = md.strip()
     return md
+
+
+def cmd_links(args):
+    """Extract all links from a page and output as JSON."""
+    base_url, token, out = get_config(args)
+    payload = {"url": args.page_url}
+    if args.wait_until:
+        payload["waitUntil"] = args.wait_until
+    if args.delay:
+        payload["delay"] = args.delay
+    if args.headers:
+        payload["headers"] = json.loads(args.headers)
+    body, ct, _ = post_json(base_url, "content", token, payload)
+    # Parse HTML and extract links
+    if isinstance(body, bytes):
+        html = body.decode("utf-8")
+    else:
+        html = body
+    links = _extract_links(html, args.page_url)
+    json_output = json.dumps(links, indent=2, ensure_ascii=False)
+    write_output(json_output, out)
+    print(f"\nExtracted {len(links)} links to {out}", file=sys.stderr)
 
 
 def cmd_markdown(args):
@@ -467,6 +526,13 @@ def build_parser():
     sp.add_argument("--include-subdomains", action="store_true")
     sp.add_argument("--sitemap", action="store_true", help="Prefer sitemap over crawling")
 
+    # --- links ---
+    sp = sub.add_parser("links", help="Extract all links from a page as JSON")
+    sp.add_argument("page_url", help="URL to extract links from")
+    sp.add_argument("--wait-until", help="Wait condition (domcontentloaded, load, networkidle0, networkidle2)")
+    sp.add_argument("--delay", type=int, help="Additional ms to wait")
+    sp.add_argument("--headers", help="Extra headers as JSON object")
+
     # --- function ---
     sp = sub.add_parser("function", help="Run custom Puppeteer code")
     sp.add_argument("--code", help="JavaScript code inline")
@@ -526,6 +592,7 @@ COMMANDS = {
     "screenshot": cmd_screenshot,
     "pdf": cmd_pdf,
     "markdown": cmd_markdown,
+    "links": cmd_links,
     "search": cmd_search,
     "map": cmd_map,
     "function": cmd_function,
