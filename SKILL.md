@@ -1,7 +1,7 @@
 ---
 name: browserless-cli
-description: Use the browserless-cli tool to fetch, scrape, and render web pages via a local or remote Browserless instance. Supports screenshot, PDF, markdown, HTML, structured data extraction, and more. Trigger on requests to "fetch a page", "scrape a website", "take a screenshot", "generate a PDF", "render a page", or any task requiring a headless browser.
-version: 1.0.0
+description: Use the browserless-cli tool to fetch, scrape, and render web pages via a local or remote Browserless instance. Supports screenshot, PDF, markdown, HTML, structured data extraction, link extraction, and more. Trigger on requests to "fetch a page", "scrape a website", "take a screenshot", "generate a PDF", "render a page", "extract links", or any task requiring a headless browser.
+version: 1.1.0
 last_updated: 2026-07-07
 ---
 
@@ -63,6 +63,21 @@ python3 browserless-cli.py --url http://localhost:4321 scrape https://example.co
 
 ---
 
+### `smart-scrape` — Auto-Detect Best Format
+
+Intelligently detects page content and returns it in the best format.
+
+```bash
+python3 browserless-cli.py --url http://localhost:4321 smart-scrape https://example.com --output-format markdown
+python3 browserless-cli.py --url http://localhost:4321 smart-scrape https://example.com --output-format json -o data.json
+```
+
+**Options:**
+- `--output-format` — Preferred format: `json`, `html`, `text`, `markdown`
+- `--wait-until` — Wait condition
+
+---
+
 ### `screenshot` — Capture Screenshots
 
 Captures screenshots in PNG format.
@@ -95,6 +110,7 @@ python3 browserless-cli.py --url http://localhost:4321 --output page.pdf pdf htt
 - `--paper-width` — Paper width in inches
 - `--paper-height` — Paper height in inches
 - `--margin` — Margins as JSON: `{"top":10,"right":10,"bottom":10,"left":10}`
+- `--display-header-footer` — Display header and footer
 - `--header-template` — HTML template for header
 - `--footer-template` — HTML template for footer
 - `--print-background` — Print background graphics and colors
@@ -105,7 +121,7 @@ python3 browserless-cli.py --url http://localhost:4321 --output page.pdf pdf htt
 
 ### `markdown` — Render as Markdown
 
-Renders a page and saves it as clean Markdown text.
+Renders a page and saves it as clean Markdown text. Uses the `/content` endpoint and performs local HTML-to-Markdown conversion.
 
 ```bash
 python3 browserless-cli.py --url http://localhost:4321 --output page.md markdown https://example.com
@@ -115,6 +131,22 @@ python3 browserless-cli.py --url http://localhost:4321 --output page.md markdown
 - `--wait-until` — Wait condition (same as `content`)
 - `--delay` — Additional ms to wait
 - `--headers` — Extra HTTP headers as JSON object
+
+---
+
+### `links` — Extract All Links
+
+Fetches a page and extracts all `<a>` links as a JSON array of `{text, url}` entries. Resolves relative URLs to absolute.
+
+```bash
+python3 browserless-cli.py --url http://localhost:4321 links https://example.com
+python3 browserless-cli.py --url http://localhost:4321 --output links.json links https://example.com
+```
+
+**Options:**
+- `--wait-until` — Wait condition: `domcontentloaded`, `load`, `networkidle0`, `networkidle2`
+- `--delay` — Additional milliseconds to wait after the wait condition
+- `--headers` — Extra HTTP headers as a JSON object (e.g. `--headers '{"Cookie":"foo=bar"}'`)
 
 ---
 
@@ -151,7 +183,7 @@ python3 browserless-cli.py --url http://localhost:4321 map https://example.com -
 
 ### `function` — Run Custom Puppeteer Code
 
-Executes custom JavaScript code in a browser context.
+Executes custom JavaScript code in a browser context. Sends raw JavaScript in the request body.
 
 ```bash
 python3 browserless-cli.py --url http://localhost:4321 function --code "return document.title;"
@@ -167,7 +199,7 @@ python3 browserless-cli.py --url http://localhost:4321 function --code-file extr
 
 ### `download` — Trigger File Downloads
 
-Runs JavaScript that triggers a file download and captures the file.
+Runs JavaScript that triggers a file download and captures the file. Sends raw JavaScript in the request body.
 
 ```bash
 python3 browserless-cli.py --url http://localhost:4321 download --code "window.location.href = '/file.pdf';"
@@ -272,6 +304,13 @@ CLI flags override environment variables, which override defaults.
 
 ## Examples
 
+### Extract Links from a Blog
+
+```bash
+python3 browserless-cli.py --url http://localhost:4321 --output links.json \
+  links https://blog.example.com
+```
+
 ### Scrape Product Prices
 
 ```bash
@@ -282,11 +321,11 @@ python3 browserless-cli.py --url http://localhost:4321 scrape https://example.co
   ]' --output prices.json
 ```
 
-### Take a Full-Page Screenshot of a Dashboard
+### Take a Screenshot of a Dashboard
 
 ```bash
 python3 browserless-cli.py --url http://localhost:4321 --output dashboard.png \
-  screenshot https://dashboard.example.com --full-page --width 1920 --height 1080 --delay 3000
+  screenshot https://dashboard.example.com
 ```
 
 ### Convert Blog Post to Markdown
@@ -301,14 +340,6 @@ python3 browserless-cli.py --url http://localhost:4321 --output blog-post.md \
 ```bash
 python3 browserless-cli.py --url http://localhost:4321 --output audit.json \
   performance https://example.com --categories performance,accessibility,seo
-```
-
-### Crawl and Extract Blog Links
-
-```bash
-python3 browserless-cli.py --url http://localhost:4321 --output links.json \
-  crawl https://blog.example.com --depth 2 --path-filter /2026/ --max-pages 50 \
-  --scrape --scrape-options '{"elements":[{"name":"links","selector":"a","attribute":"href"}]}'
 ```
 
 ### Search and Save Results
@@ -327,9 +358,11 @@ This CLI wraps the following Browserless endpoints:
 |---------|-------------|-------------|
 | `content` | `/content` | POST |
 | `scrape` | `/scrape` | POST |
+| `smart-scrape` | `/smart-scrape` | POST |
 | `screenshot` | `/screenshot` | POST |
 | `pdf` | `/pdf` | POST |
 | `markdown` | `/content` (with local HTML→MD conversion) | POST |
+| `links` | `/content` (with local link extraction) | POST |
 | `search` | `/search` | POST |
 | `map` | `/map` | POST |
 | `function` | `/function` | POST |
@@ -353,6 +386,7 @@ Full API documentation: [https://www.browserless.io/docs/](https://www.browserle
 - Taking screenshots or generating PDFs of web pages
 - Extracting structured data with CSS selectors
 - Converting pages to clean Markdown
+- Extracting all links from a page as JSON
 - Running Lighthouse performance audits
 - Crawling entire sites for link discovery
 - Executing custom Puppeteer/Playwright JavaScript
