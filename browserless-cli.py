@@ -431,13 +431,6 @@ def build_parser():
     # --- screenshot ---
     sp = sub.add_parser("screenshot", help="Capture a screenshot")
     sp.add_argument("page_url", help="URL to screenshot")
-    sp.add_argument("--type", choices=["png", "jpeg", "webp"], default="png", help="Image format")
-    sp.add_argument("--full-page", action="store_true", help="Full page screenshot")
-    sp.add_argument("--quality", type=int, help="JPEG/WebP quality (1-100)")
-    sp.add_argument("--width", type=int, help="Viewport width")
-    sp.add_argument("--height", type=int, help="Viewport height")
-    sp.add_argument("--delay", type=int, help="Additional ms to wait")
-    sp.add_argument("--clip", help="Clip rectangle as JSON {x,y,width,height}")
 
     # --- pdf ---
     sp = sub.add_parser("pdf", help="Generate PDF from a page")

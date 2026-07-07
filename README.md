@@ -81,29 +81,22 @@ python3 browserless-cli.py scrape https://example.com \
 Intelligently detects page content and returns it in the best format.
 
 ```bash
-python3 browserless-cli.py smart-scrape https://example.com --output markdown
-python3 browserless-cli.py smart-scrape https://example.com --output json -o data.json
+python3 browserless-cli.py smart-scrape https://example.com --output-format markdown
+python3 browserless-cli.py smart-scrape https://example.com --output-format json -o data.json
 ```
 
 **Options:**
-- `--output` — Preferred format: `json`, `html`, `text`, `markdown`
+- `--output-format` — Preferred format: `json`, `html`, `text`, `markdown`
 - `--wait-until` — Wait condition
 
 ---
 
 ### `screenshot` — Capture Screenshots
 
-Captures screenshots in PNG, JPEG, or WebP format.
+Captures screenshots in PNG format.
 
 ```bash
-# Full-page screenshot
-python3 browserless-cli.py screenshot https://example.com -o full.png --full-page
-
-# Custom viewport
-python3 browserless-cli.py screenshot https://example.com -o mobile.png --width 375 --height 812
-
-# JPEG with quality
-python3 browserless-cli.py screenshot https://example.com -o page.jpg --type jpeg --quality 80
+python3 browserless-cli.py screenshot https://example.com -o page.png
 ```
 
 **Options:**
@@ -132,6 +125,7 @@ python3 browserless-cli.py pdf https://example.com -o report.pdf \
 - `--paper-width` — Paper width in inches
 - `--paper-height` — Paper height in inches
 - `--margin` — Margins as JSON: `{"top":10,"right":10,"bottom":10,"left":10}`
+- `--display-header-footer` — Display header and footer
 - `--header-template` — HTML template for header
 - `--footer-template` — HTML template for footer
 - `--print-background` — Print background graphics and colors
@@ -142,7 +136,7 @@ python3 browserless-cli.py pdf https://example.com -o report.pdf \
 
 ### `markdown` — Render as Markdown
 
-Renders a page and saves it as clean Markdown text.
+Renders a page and saves it as clean Markdown text. Uses the `/content` endpoint and performs local HTML-to-Markdown conversion.
 
 ```bash
 python3 browserless-cli.py markdown https://example.com -o page.md
@@ -189,7 +183,7 @@ python3 browserless-cli.py map https://example.com --search "/blog/"
 
 ### `function` — Run Custom Puppeteer Code
 
-Executes custom JavaScript code in a browser context.
+Executes custom JavaScript code in a browser context. Sends raw JavaScript in the request body.
 
 ```bash
 # Inline code
@@ -211,7 +205,7 @@ python3 browserless-cli.py function --code "return page.url();" --context '{"foo
 
 ### `download` — Trigger File Downloads
 
-Runs JavaScript that triggers a file download and captures the file.
+Runs JavaScript that triggers a file download and captures the file. Sends raw JavaScript in the request body.
 
 ```bash
 python3 browserless-cli.py download --code-file download.js
@@ -332,11 +326,11 @@ python3 browserless-cli.py scrape https://example.com/shop \
   ]' -o prices.json
 ```
 
-### Take a Full-Page Screenshot of a Dashboard
+### Take a Screenshot of a Dashboard
 
 ```bash
 python3 browserless-cli.py screenshot https://dashboard.example.com \
-  -o dashboard.png --full-page --width 1920 --height 1080 --delay 3000
+  -o dashboard.png
 ```
 
 ### Convert Blog Post to Markdown
@@ -385,12 +379,12 @@ This CLI wraps the following Browserless endpoints:
 | `smart-scrape` | `/smart-scrape` | POST |
 | `screenshot` | `/screenshot` | POST |
 | `pdf` | `/pdf` | POST |
-| `markdown` | `/smart-scrape` (with `output: "markdown"`) | POST |
+| `markdown` | `/content` (with local HTML→MD conversion) | POST |
 | `search` | `/search` | POST |
 | `map` | `/map` | POST |
 | `function` | `/function` | POST |
 | `download` | `/download` | POST |
-| `export` | `/export` | GET |
+| `export` | `/export` | POST |
 | `unblock` | `/unblock` | POST |
 | `performance` | `/performance` | POST |
 | `crawl` | `/crawl` | POST |
