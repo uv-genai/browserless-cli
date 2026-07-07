@@ -5,7 +5,7 @@ A single Python script that wraps **all Browserless REST API endpoints** as comm
 ## Features
 
 - **Zero dependencies** — uses only Python's built-in `urllib`, `json`, `argparse`
-- **14 commands** covering the full Browserless API surface
+- **15 commands** covering the full Browserless API surface
 - **Configurable** via CLI flags or environment variables
 - **Binary-safe output** — handles text and binary responses (images, PDFs)
 - **Pipe-friendly** — defaults to stdout for shell scripting
@@ -181,6 +181,22 @@ python3 browserless-cli.py map https://example.com --search "/blog/"
 
 ---
 
+### `links` — Extract All Links
+
+Fetches a page and extracts all `<a>` links as a JSON array of `{text, url}` entries. Resolves relative URLs to absolute.
+
+```bash
+python3 browserless-cli.py links https://example.com
+python3 browserless-cli.py links https://example.com -o links.json
+```
+
+**Options:**
+- `--wait-until` — Wait condition: `domcontentloaded`, `load`, `networkidle0`, `networkidle2`
+- `--delay` — Additional milliseconds to wait after the wait condition
+- `--headers` — Extra HTTP headers as a JSON object (e.g. `--headers '{"Cookie":"foo=bar"}'`)
+
+---
+
 ### `function` — Run Custom Puppeteer Code
 
 Executes custom JavaScript code in a browser context. Sends raw JavaScript in the request body.
@@ -347,13 +363,10 @@ python3 browserless-cli.py performance https://example.com \
   --categories performance,accessibility,seo -o audit.json
 ```
 
-### Crawl and Extract Blog Links
+### Extract Links from a Blog
 
 ```bash
-python3 browserless-cli.py crawl https://blog.example.com \
-  --depth 2 --path-filter /2026/ --max-pages 50 \
-  --scrape --scrape-options '{"elements":[{"name":"links","selector":"a","attribute":"href"}]}' \
-  -o links.json
+python3 browserless-cli.py links https://blog.example.com -o links.json
 ```
 
 ### Search and Save Results
@@ -388,6 +401,7 @@ This CLI wraps the following Browserless endpoints:
 | `unblock` | `/unblock` | POST |
 | `performance` | `/performance` | POST |
 | `crawl` | `/crawl` | POST |
+| `links` | `/content` (with local link extraction) | POST |
 
 Full API documentation: [https://www.browserless.io/docs/](https://www.browserless.io/docs/)
 
